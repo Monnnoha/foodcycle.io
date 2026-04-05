@@ -5,12 +5,14 @@ import com.foodredistribution.foodredistribution.entity.FoodDonation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface DonationRepository extends JpaRepository<FoodDonation, Long> {
+public interface DonationRepository extends JpaRepository<FoodDonation, Long>,
+        JpaSpecificationExecutor<FoodDonation> {
 
     List<FoodDonation> findByStatus(DonationStatus status);
 
@@ -42,8 +44,7 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long> {
            "SUM(CASE WHEN d.status = 'DELIVERED'  THEN 1 ELSE 0 END) " +
            "FROM FoodDonation d WHERE d.donor.userId = :donorId")
     Object[] aggregateByDonor(@Param("donorId") Long donorId);
-
-    @Query("SELECT d FROM FoodDonation d WHERE " +
+}
            "(:keyword  IS NULL OR LOWER(d.foodDescription) LIKE LOWER(CONCAT('%', :keyword,  '%'))) AND " +
            "(:foodType IS NULL OR LOWER(d.foodType)        LIKE LOWER(CONCAT('%', :foodType, '%'))) AND " +
            "(:city     IS NULL OR LOWER(d.city)            LIKE LOWER(CONCAT('%', :city,     '%'))) AND " +
@@ -57,4 +58,3 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long> {
             @Param("donorId")  Long donorId,
             Pageable pageable
     );
-}

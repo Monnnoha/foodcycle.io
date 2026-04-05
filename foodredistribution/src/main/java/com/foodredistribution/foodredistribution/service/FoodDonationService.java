@@ -8,13 +8,16 @@ import com.foodredistribution.foodredistribution.entity.User;
 import com.foodredistribution.foodredistribution.exception.BadRequestException;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
+import com.foodredistribution.foodredistribution.repository.DonationSpecification;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class FoodDonationService {
@@ -35,6 +38,7 @@ public class FoodDonationService {
         donation.setCity(dto.getCity());
         donation.setLocation(dto.getLocation());
         donation.setQuantity(dto.getQuantity());
+        donation.setExpiryDate(dto.getExpiryDate());
         donation.setStatus(DonationStatus.AVAILABLE);
         donation.setDonor(donor);
 
@@ -64,11 +68,18 @@ public class FoodDonationService {
                 .orElse(false);
     }
 
+    // Allowed sort fields — whitelist prevents injection via sortBy param
+    private static final Set<String> SORTABLE_FIELDS = Set.of("createdAt", "quantity", "expiryDate");
+
     public Page<FoodDonationDTO> search(DonationFilterDTO filter) {
-        PageRequest pageable = PageRequest.of(filter.getPage(), filter.getSize());
-        return donationRepository.search(
-                filter.getKeyword(), filter.getFoodType(), filter.getCity(),
-                filter.getStatus(), filter.getDonorId(), pageable)
+        String sortField = SORTABLE_FIELDS.contains(filter.getSortBy()) ? filter.getSortBy() : "createdAt";
+        Sort.Direction direction = "asc".equalsIgnoreCase(filter.getSortDir())
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        PageRequest pageable = PageRequest.of(filter.getPage(), filter.getSize(),
+                Sort.by(direction, sortField));
+
+        return donationRepository.findAll(DonationSpecification.fromFilter(filter), pageable)
                 .map(this::toDTO);
     }
 
@@ -99,6 +110,7 @@ public class FoodDonationService {
         dto.setCity(donation.getCity());
         dto.setLocation(donation.getLocation());
         dto.setQuantity(donation.getQuantity());
+        dto.setExpiryDate(donation.getExpiryDate());
         dto.setStatus(donation.getStatus());
         dto.setDonorId(donation.getDonor() != null ? donation.getDonor().getUserId() : null);
         dto.setCreatedAt(donation.getCreatedAt());

@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "food_donations")
 @Data
@@ -32,6 +34,8 @@ public class FoodDonation extends BaseEntity {
 
     @Column(nullable = false)
     private int quantity;
+
+    private LocalDate expiryDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

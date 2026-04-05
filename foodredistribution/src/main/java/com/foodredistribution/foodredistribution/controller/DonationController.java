@@ -70,7 +70,7 @@ public class DonationController {
     // All roles can search with filters
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Search donations with filters and pagination (all authenticated roles)")
+    @Operation(summary = "Search donations — filters: keyword, foodType, city, status, donorId, dateFrom, dateTo | sort: createdAt | quantity | expiryDate | dir: asc | desc")
     public ApiResponse<Page<FoodDonationDTO>> search(@ModelAttribute DonationFilterDTO filter) {
         return ApiResponse.success(donationService.search(filter));
     }
