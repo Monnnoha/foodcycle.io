@@ -2,7 +2,9 @@ package com.foodredistribution.foodredistribution.service;
 
 import com.foodredistribution.foodredistribution.dto.NotificationDTO;
 import com.foodredistribution.foodredistribution.entity.*;
+import com.foodredistribution.foodredistribution.event.DonationCreatedEvent;
 import com.foodredistribution.foodredistribution.event.DonationEvent;
+import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
 import com.foodredistribution.foodredistribution.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -18,10 +20,21 @@ public class NotificationService {
     @Autowired
     private NotificationRepository notificationRepository;
 
-    /**
-     * Listens for DonationEvents published by PickupService and creates
-     * notifications for the relevant parties asynchronously.
-     */
+    // ── Event listeners ───────────────────────────────────────────────────────
+
+    /** Fires when a DONOR creates a new donation — notifies the donor */
+    @Async
+    @EventListener
+    public void handleDonationCreated(DonationCreatedEvent event) {
+        FoodDonation donation = event.getDonation();
+        save(donation.getDonor(),
+                "Donation Created",
+                "Your donation '" + donation.getFoodDescription() + "' is now live and available for pickup.",
+                NotificationType.DONATION_CREATED,
+                donation.getDonationId());
+    }
+
+    /** Fires on pickup workflow transitions — notifies relevant parties */
     @Async
     @EventListener
     public void handleDonationEvent(DonationEvent event) {
@@ -31,21 +44,33 @@ public class NotificationService {
 
         switch (type) {
             case PICKUP_REQUESTED -> {
-                // Notify donor that someone requested their donation
-                save(pickup.getDonation().getDonor(),
+                // Donor knows their donation was claimed
+                save(donation.getDonor(),
                         "Pickup Requested",
                         "Your donation '" + donation.getFoodDescription() + "' has been requested for pickup.",
                         type, donation.getDonationId());
-                // Notify NGO they've been assigned
+                // Volunteer confirmation
+                save(pickup.getVolunteer(),
+                        "Pickup Confirmed",
+                        "You have successfully requested pickup for '" + donation.getFoodDescription() + "'.",
+                        type, donation.getDonationId());
+            }
+            case PICKUP_ASSIGNED -> {
+                // NGO notified of assignment
                 save(pickup.getNgo(),
-                        "New Pickup Assignment",
-                        "A pickup has been assigned to your NGO for donation: " + donation.getFoodDescription(),
+                        "Pickup Assigned to Your NGO",
+                        "Donation '" + donation.getFoodDescription() + "' has been assigned to your NGO.",
+                        type, donation.getDonationId());
+                // Volunteer notified of NGO assignment
+                save(pickup.getVolunteer(),
+                        "NGO Assigned",
+                        "Your pickup for '" + donation.getFoodDescription() + "' is assigned to an NGO.",
                         type, donation.getDonationId());
             }
             case DONATION_PICKED -> {
-                save(pickup.getDonation().getDonor(),
+                save(donation.getDonor(),
                         "Donation Picked Up",
-                        "Your donation '" + donation.getFoodDescription() + "' has been picked up by a volunteer.",
+                        "Your donation '" + donation.getFoodDescription() + "' has been picked up.",
                         type, donation.getDonationId());
                 save(pickup.getNgo(),
                         "Donation En Route",
@@ -53,23 +78,34 @@ public class NotificationService {
                         type, donation.getDonationId());
             }
             case DONATION_DELIVERED -> {
-                save(pickup.getDonation().getDonor(),
+                save(donation.getDonor(),
                         "Donation Delivered",
-                        "Your donation '" + donation.getFoodDescription() + "' has been successfully delivered.",
+                        "Your donation '" + donation.getFoodDescription() + "' was successfully delivered.",
                         type, donation.getDonationId());
                 save(pickup.getVolunteer(),
                         "Delivery Complete",
                         "Thank you for delivering '" + donation.getFoodDescription() + "'.",
                         type, donation.getDonationId());
-            }
-            case PICKUP_CANCELLED -> {
-                save(pickup.getDonation().getDonor(),
-                        "Pickup Cancelled",
-                        "The pickup for your donation '" + donation.getFoodDescription() + "' was cancelled.",
+                save(pickup.getNgo(),
+                        "Donation Received",
+                        "Donation '" + donation.getFoodDescription() + "' has been delivered to your NGO.",
                         type, donation.getDonationId());
             }
+            case PICKUP_CANCELLED -> {
+                save(donation.getDonor(),
+                        "Pickup Cancelled",
+                        "The pickup for your donation '" + donation.getFoodDescription() + "' was cancelled. It is available again.",
+                        type, donation.getDonationId());
+                save(pickup.getVolunteer(),
+                        "Pickup Cancelled",
+                        "Your pickup request for '" + donation.getFoodDescription() + "' has been cancelled.",
+                        type, donation.getDonationId());
+            }
+            default -> { /* DONATION_CREATED handled by separate listener */ }
         }
     }
+
+    // ── Queries ───────────────────────────────────────────────────────────────
 
     public Page<NotificationDTO> getNotificationsForUser(Long userId, int page, int size) {
         return notificationRepository
@@ -77,8 +113,24 @@ public class NotificationService {
                 .map(this::toDTO);
     }
 
+    public Page<NotificationDTO> getUnreadNotificationsForUser(Long userId, int page, int size) {
+        return notificationRepository
+                .findByRecipientUserIdAndReadFalseOrderByCreatedAtDesc(userId, PageRequest.of(page, size))
+                .map(this::toDTO);
+    }
+
     public long getUnreadCount(Long userId) {
         return notificationRepository.countByRecipientUserIdAndReadFalse(userId);
+    }
+
+    // ── Mutations ─────────────────────────────────────────────────────────────
+
+    @Transactional
+    public NotificationDTO markSingleRead(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found: " + notificationId));
+        notification.setRead(true);
+        return toDTO(notificationRepository.save(notification));
     }
 
     @Transactional
@@ -86,11 +138,13 @@ public class NotificationService {
         notificationRepository.markAllReadForUser(userId);
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private void save(User recipient, String title, String message, NotificationType type, Long donationId) {
         notificationRepository.save(new Notification(recipient, title, message, type, donationId));
     }
 
-    private NotificationDTO toDTO(Notification n) {
+    public NotificationDTO toDTO(Notification n) {
         return new NotificationDTO(
                 n.getNotificationId(),
                 n.getTitle(),

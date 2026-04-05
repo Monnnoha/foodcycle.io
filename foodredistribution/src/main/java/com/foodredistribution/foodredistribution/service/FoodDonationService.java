@@ -7,10 +7,12 @@ import com.foodredistribution.foodredistribution.entity.FoodDonation;
 import com.foodredistribution.foodredistribution.entity.User;
 import com.foodredistribution.foodredistribution.exception.BadRequestException;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
+import com.foodredistribution.foodredistribution.event.DonationCreatedEvent;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.DonationSpecification;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,6 +30,9 @@ public class FoodDonationService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     public FoodDonationDTO createDonation(FoodDonationDTO dto) {
         User donor = userRepository.findById(dto.getDonorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Donor not found with id: " + dto.getDonorId()));
@@ -42,7 +47,9 @@ public class FoodDonationService {
         donation.setStatus(DonationStatus.AVAILABLE);
         donation.setDonor(donor);
 
-        return toDTO(donationRepository.save(donation));
+        FoodDonation saved = donationRepository.save(donation);
+        eventPublisher.publishEvent(new DonationCreatedEvent(this, saved));
+        return toDTO(saved);
     }
 
     public FoodDonationDTO getDonation(Long id) {
