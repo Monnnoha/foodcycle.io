@@ -1,19 +1,21 @@
 package com.foodredistribution.foodredistribution.service;
 
+import com.foodredistribution.foodredistribution.aspect.Auditable;
 import com.foodredistribution.foodredistribution.dto.FoodDonationDTO;
 import com.foodredistribution.foodredistribution.dto.PickupRequestDTO;
 import com.foodredistribution.foodredistribution.dto.UpdatePickupRequest;
+import com.foodredistribution.foodredistribution.entity.AuditAction;
 import com.foodredistribution.foodredistribution.entity.DonationStatus;
 import com.foodredistribution.foodredistribution.entity.FoodDonation;
+import com.foodredistribution.foodredistribution.entity.NotificationType;
 import com.foodredistribution.foodredistribution.entity.PickupRequest;
 import com.foodredistribution.foodredistribution.entity.User;
+import com.foodredistribution.foodredistribution.event.DonationEvent;
 import com.foodredistribution.foodredistribution.exception.BadRequestException;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.PickupRepository;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
-import com.foodredistribution.foodredistribution.entity.NotificationType;
-import com.foodredistribution.foodredistribution.event.DonationEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -76,6 +78,7 @@ public class PickupService {
      * Cancel a pickup — resets donation back to AVAILABLE.
      * Only allowed while donation is still REQUESTED.
      */
+    @Auditable(action = AuditAction.PICKUP_CANCELLED, entity = "PickupRequest")
     @Transactional
     public void cancelPickup(Long id) {
         PickupRequest pickup = findById(id);
@@ -95,6 +98,7 @@ public class PickupService {
     // ── Workflow ─────────────────────────────────────────────────────────────
 
     /** Volunteer requests a pickup: AVAILABLE → REQUESTED */
+    @Auditable(action = AuditAction.PICKUP_REQUESTED, entity = "PickupRequest")
     @Transactional
     public PickupRequestDTO requestPickup(PickupRequestDTO dto) {
         FoodDonation donation = donationRepository.findById(dto.getDonationId())
@@ -126,6 +130,7 @@ public class PickupService {
     }
 
     /** REQUESTED → PICKED */
+    @Auditable(action = AuditAction.DONATION_PICKED, entity = "FoodDonation")
     @Transactional
     public FoodDonationDTO markPicked(Long donationId) {
         FoodDonation donation = donationRepository.findById(donationId)
@@ -141,6 +146,7 @@ public class PickupService {
     }
 
     /** PICKED → DELIVERED */
+    @Auditable(action = AuditAction.DONATION_DELIVERED, entity = "FoodDonation")
     @Transactional
     public FoodDonationDTO markDelivered(Long donationId) {
         FoodDonation donation = donationRepository.findById(donationId)

@@ -1,8 +1,10 @@
 package com.foodredistribution.foodredistribution.service;
 
+import com.foodredistribution.foodredistribution.aspect.Auditable;
 import com.foodredistribution.foodredistribution.dto.RegisterRequest;
 import com.foodredistribution.foodredistribution.dto.UpdateUserRequest;
 import com.foodredistribution.foodredistribution.dto.UserDTO;
+import com.foodredistribution.foodredistribution.entity.AuditAction;
 import com.foodredistribution.foodredistribution.entity.User;
 import com.foodredistribution.foodredistribution.exception.BadRequestException;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
@@ -23,6 +25,7 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Auditable(action = AuditAction.USER_REGISTERED, entity = "User")
     @Transactional
     public UserDTO registerUser(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -40,6 +43,7 @@ public class UserService {
         return toDTO(findById(id));
     }
 
+    @Auditable(action = AuditAction.USER_UPDATED, entity = "User")
     @Transactional
     public UserDTO updateUser(Long id, UpdateUserRequest request) {
         User user = findById(id);

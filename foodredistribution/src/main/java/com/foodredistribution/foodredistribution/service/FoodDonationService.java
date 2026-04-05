@@ -1,5 +1,7 @@
 package com.foodredistribution.foodredistribution.service;
 
+import com.foodredistribution.foodredistribution.aspect.Auditable;
+import com.foodredistribution.foodredistribution.entity.AuditAction;
 import com.foodredistribution.foodredistribution.dto.DonationFilterDTO;
 import com.foodredistribution.foodredistribution.dto.FoodDonationDTO;
 import com.foodredistribution.foodredistribution.entity.DonationStatus;
@@ -33,6 +35,7 @@ public class FoodDonationService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Auditable(action = AuditAction.DONATION_CREATED, entity = "FoodDonation")
     public FoodDonationDTO createDonation(FoodDonationDTO dto) {
         User donor = userRepository.findById(dto.getDonorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Donor not found with id: " + dto.getDonorId()));
@@ -94,6 +97,7 @@ public class FoodDonationService {
      * Advances a donation to the next status in the workflow:
      * AVAILABLE → REQUESTED → PICKED → DELIVERED
      */
+    @Auditable(action = AuditAction.DONATION_STATUS_ADVANCED, entity = "FoodDonation")
     public FoodDonationDTO advanceStatus(Long donationId) {
         FoodDonation donation = findById(donationId);
         try {
