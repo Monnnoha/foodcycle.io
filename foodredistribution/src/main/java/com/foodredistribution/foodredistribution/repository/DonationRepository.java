@@ -16,14 +16,20 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long> {
 
     List<FoodDonation> findByDonorUserId(Long donorId);
 
+    long countByStatus(DonationStatus status);
+
     @Query("SELECT d FROM FoodDonation d WHERE " +
-           "(:keyword IS NULL OR LOWER(d.foodDescription) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
-           "(:status IS NULL OR d.status = :status) AND " +
-           "(:donorId IS NULL OR d.donor.userId = :donorId)")
+           "(:keyword  IS NULL OR LOWER(d.foodDescription) LIKE LOWER(CONCAT('%', :keyword,  '%'))) AND " +
+           "(:foodType IS NULL OR LOWER(d.foodType)        LIKE LOWER(CONCAT('%', :foodType, '%'))) AND " +
+           "(:city     IS NULL OR LOWER(d.city)            LIKE LOWER(CONCAT('%', :city,     '%'))) AND " +
+           "(:status   IS NULL OR d.status = :status) AND " +
+           "(:donorId  IS NULL OR d.donor.userId = :donorId)")
     Page<FoodDonation> search(
-            @Param("keyword") String keyword,
-            @Param("status") DonationStatus status,
-            @Param("donorId") Long donorId,
+            @Param("keyword")  String keyword,
+            @Param("foodType") String foodType,
+            @Param("city")     String city,
+            @Param("status")   DonationStatus status,
+            @Param("donorId")  Long donorId,
             Pageable pageable
     );
 }

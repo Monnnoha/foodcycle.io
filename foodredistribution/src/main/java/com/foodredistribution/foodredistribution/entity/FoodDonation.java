@@ -21,6 +21,15 @@ public class FoodDonation extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String foodDescription;
 
+    @Column(length = 100)
+    private String foodType;        // e.g. "Grains", "Vegetables", "Cooked Food"
+
+    @Column(length = 150)
+    private String city;
+
+    @Column(length = 300)
+    private String location;        // street address or landmark
+
     @Column(nullable = false)
     private int quantity;
 

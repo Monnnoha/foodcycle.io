@@ -12,7 +12,10 @@ import com.foodredistribution.foodredistribution.exception.ResourceNotFoundExcep
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.PickupRepository;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
+import com.foodredistribution.foodredistribution.entity.NotificationType;
+import com.foodredistribution.foodredistribution.event.DonationEvent;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -32,6 +35,9 @@ public class PickupService {
 
     @Autowired
     private FoodDonationService donationService;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     // ── CRUD ────────────────────────────────────────────────────────────────
 
@@ -82,6 +88,7 @@ public class PickupService {
         FoodDonation donation = pickup.getDonation();
         donation.setStatus(DonationStatus.AVAILABLE);
         donationRepository.save(donation);
+        eventPublisher.publishEvent(new DonationEvent(this, pickup, NotificationType.PICKUP_CANCELLED));
         pickupRepository.delete(pickup);
     }
 
@@ -113,19 +120,39 @@ public class PickupService {
         pickup.setVolunteer(volunteer);
         pickup.setNgo(ngo);
 
-        return toDTO(pickupRepository.save(pickup));
+        PickupRequest savedPickup = pickupRepository.save(pickup);
+        eventPublisher.publishEvent(new DonationEvent(this, savedPickup, NotificationType.PICKUP_REQUESTED));
+        return toDTO(savedPickup);
     }
 
     /** REQUESTED → PICKED */
     @Transactional
     public FoodDonationDTO markPicked(Long donationId) {
-        return advanceAndValidate(donationId, DonationStatus.REQUESTED, "picked up");
+        FoodDonation donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Donation not found with id: " + donationId));
+        if (donation.getStatus() != DonationStatus.REQUESTED) {
+            throw new BadRequestException("Cannot mark donation as picked up. Current status: " + donation.getStatus());
+        }
+        donation.setStatus(DonationStatus.PICKED);
+        donationRepository.save(donation);
+        pickupRepository.findByDonationDonationId(donationId)
+                .ifPresent(p -> eventPublisher.publishEvent(new DonationEvent(this, p, NotificationType.DONATION_PICKED)));
+        return donationService.toDTO(donation);
     }
 
     /** PICKED → DELIVERED */
     @Transactional
     public FoodDonationDTO markDelivered(Long donationId) {
-        return advanceAndValidate(donationId, DonationStatus.PICKED, "delivered");
+        FoodDonation donation = donationRepository.findById(donationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Donation not found with id: " + donationId));
+        if (donation.getStatus() != DonationStatus.PICKED) {
+            throw new BadRequestException("Cannot mark donation as delivered. Current status: " + donation.getStatus());
+        }
+        donation.setStatus(DonationStatus.DELIVERED);
+        donationRepository.save(donation);
+        pickupRepository.findByDonationDonationId(donationId)
+                .ifPresent(p -> eventPublisher.publishEvent(new DonationEvent(this, p, NotificationType.DONATION_DELIVERED)));
+        return donationService.toDTO(donation);
     }
 
     public PickupRequestDTO getPickupByDonation(Long donationId) {

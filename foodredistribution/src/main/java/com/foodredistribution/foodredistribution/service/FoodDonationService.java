@@ -31,6 +31,9 @@ public class FoodDonationService {
 
         FoodDonation donation = new FoodDonation();
         donation.setFoodDescription(dto.getFoodDescription());
+        donation.setFoodType(dto.getFoodType());
+        donation.setCity(dto.getCity());
+        donation.setLocation(dto.getLocation());
         donation.setQuantity(dto.getQuantity());
         donation.setStatus(DonationStatus.AVAILABLE);
         donation.setDonor(donor);
@@ -56,7 +59,9 @@ public class FoodDonationService {
 
     public Page<FoodDonationDTO> search(DonationFilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.getPage(), filter.getSize());
-        return donationRepository.search(filter.getKeyword(), filter.getStatus(), filter.getDonorId(), pageable)
+        return donationRepository.search(
+                filter.getKeyword(), filter.getFoodType(), filter.getCity(),
+                filter.getStatus(), filter.getDonorId(), pageable)
                 .map(this::toDTO);
     }
 
@@ -80,12 +85,17 @@ public class FoodDonationService {
     }
 
     public FoodDonationDTO toDTO(FoodDonation donation) {
-        return new FoodDonationDTO(
-                donation.getDonationId(),
-                donation.getFoodDescription(),
-                donation.getQuantity(),
-                donation.getStatus(),
-                donation.getDonor() != null ? donation.getDonor().getUserId() : null
-        );
+        FoodDonationDTO dto = new FoodDonationDTO();
+        dto.setDonationId(donation.getDonationId());
+        dto.setFoodDescription(donation.getFoodDescription());
+        dto.setFoodType(donation.getFoodType());
+        dto.setCity(donation.getCity());
+        dto.setLocation(donation.getLocation());
+        dto.setQuantity(donation.getQuantity());
+        dto.setStatus(donation.getStatus());
+        dto.setDonorId(donation.getDonor() != null ? donation.getDonor().getUserId() : null);
+        dto.setCreatedAt(donation.getCreatedAt());
+        dto.setUpdatedAt(donation.getUpdatedAt());
+        return dto;
     }
 }

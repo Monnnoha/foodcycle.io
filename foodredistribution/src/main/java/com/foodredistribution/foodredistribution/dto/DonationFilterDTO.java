@@ -6,6 +6,8 @@ import lombok.Data;
 @Data
 public class DonationFilterDTO {
     private String keyword;       // searches foodDescription
+    private String foodType;      // filter by food type
+    private String city;          // filter by city
     private DonationStatus status;
     private Long donorId;
     private int page = 0;
