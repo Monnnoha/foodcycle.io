@@ -24,8 +24,16 @@ public class PickupController {
     @Autowired
     private PickupService pickupService;
 
-    // ── CRUD ────────────────────────────────────────────────────────────────
+    // VOLUNTEER creates a pickup request — AVAILABLE → REQUESTED
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('VOLUNTEER')")
+    @Operation(summary = "Request a pickup — AVAILABLE → REQUESTED (VOLUNTEER only)")
+    public ApiResponse<PickupRequestDTO> requestPickup(@Valid @RequestBody PickupRequestDTO dto) {
+        return ApiResponse.success("Pickup requested", pickupService.requestPickup(dto));
+    }
 
+    // ADMIN, NGO, VOLUNTEER can list all pickups
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NGO', 'VOLUNTEER')")
     @Operation(summary = "List all pickups with pagination (ADMIN, NGO, VOLUNTEER)")
@@ -35,13 +43,23 @@ public class PickupController {
         return ApiResponse.success(pickupService.getAllPickups(page, size));
     }
 
+    // Any authenticated user can view a single pickup
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NGO', 'VOLUNTEER', 'DONOR')")
-    @Operation(summary = "Get pickup by ID")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get pickup by ID (all authenticated roles)")
     public ApiResponse<PickupRequestDTO> getPickupById(@PathVariable Long id) {
         return ApiResponse.success(pickupService.getPickupById(id));
     }
 
+    // Any authenticated user can look up pickup by donation
+    @GetMapping("/donation/{donationId}")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get pickup details by donation ID (all authenticated roles)")
+    public ApiResponse<PickupRequestDTO> getPickupByDonation(@PathVariable Long donationId) {
+        return ApiResponse.success(pickupService.getPickupByDonation(donationId));
+    }
+
+    // VOLUNTEER can reassign themselves; ADMIN can reassign anyone
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'VOLUNTEER')")
     @Operation(summary = "Reassign volunteer/NGO on a pickup (ADMIN or VOLUNTEER, only while REQUESTED)")
@@ -50,31 +68,16 @@ public class PickupController {
         return ApiResponse.success("Pickup updated", pickupService.updatePickup(id, request));
     }
 
+    // ADMIN-only cancellation
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cancel and delete a pickup (ADMIN only, only while REQUESTED)")
+    @Operation(summary = "Cancel and delete a pickup (ADMIN only)")
     public void cancelPickup(@PathVariable Long id) {
         pickupService.cancelPickup(id);
     }
 
-    // ── Workflow ─────────────────────────────────────────────────────────────
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('VOLUNTEER')")
-    @Operation(summary = "Request a pickup — AVAILABLE → REQUESTED (VOLUNTEER only)")
-    public ApiResponse<PickupRequestDTO> requestPickup(@Valid @RequestBody PickupRequestDTO dto) {
-        return ApiResponse.success("Pickup requested", pickupService.requestPickup(dto));
-    }
-
-    @GetMapping("/donation/{donationId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NGO', 'VOLUNTEER', 'DONOR')")
-    @Operation(summary = "Get pickup details by donation ID")
-    public ApiResponse<PickupRequestDTO> getPickupByDonation(@PathVariable Long donationId) {
-        return ApiResponse.success(pickupService.getPickupByDonation(donationId));
-    }
-
+    // VOLUNTEER marks food as physically collected — REQUESTED → PICKED
     @PatchMapping("/donation/{donationId}/pick")
     @PreAuthorize("hasRole('VOLUNTEER')")
     @Operation(summary = "Mark donation as picked up — REQUESTED → PICKED (VOLUNTEER only)")
@@ -82,6 +85,7 @@ public class PickupController {
         return ApiResponse.success("Donation marked as picked", pickupService.markPicked(donationId));
     }
 
+    // NGO confirms receipt; VOLUNTEER can also confirm — PICKED → DELIVERED
     @PatchMapping("/donation/{donationId}/deliver")
     @PreAuthorize("hasAnyRole('NGO', 'VOLUNTEER')")
     @Operation(summary = "Mark donation as delivered — PICKED → DELIVERED (NGO or VOLUNTEER)")

@@ -62,4 +62,9 @@ public class UserService {
     public UserDTO toDTO(User user) {
         return new UserDTO(user.getUserId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
     }
+
+    /** Used by @PreAuthorize SpEL to check ownership without an extra service call */
+    public String getEmailById(Long id) {
+        return findById(id).getEmail();
+    }
 }

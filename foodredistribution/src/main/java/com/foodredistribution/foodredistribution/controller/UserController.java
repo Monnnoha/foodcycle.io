@@ -22,6 +22,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    // ADMIN lists all users with pagination
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "List all users with pagination (ADMIN only)")
@@ -31,15 +32,18 @@ public class UserController {
         return ApiResponse.success(userService.getAllUsers(page, size));
     }
 
+    // ADMIN can view any profile; users can view their own
+    // Uses getEmailById() to avoid double-loading the user in SpEL
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getUserById(#id).email")
+    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getEmailById(#id)")
     @Operation(summary = "Get user profile — own profile or ADMIN")
     public ApiResponse<UserDTO> getUserById(@PathVariable Long id) {
         return ApiResponse.success(userService.getUserById(id));
     }
 
+    // ADMIN can update any profile; users can update their own
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getUserById(#id).email")
+    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getEmailById(#id)")
     @Operation(summary = "Update name and phone — own profile or ADMIN")
     public ApiResponse<UserDTO> updateUser(@PathVariable Long id,
                                            @Valid @RequestBody UpdateUserRequest request) {

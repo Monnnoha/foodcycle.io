@@ -20,9 +20,10 @@ public class NotificationController {
     @Autowired
     private NotificationService notificationService;
 
+    // Users fetch their own notifications; ADMIN can fetch any user's
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getUserById(#userId).email")
-    @Operation(summary = "Get paginated notifications for a user")
+    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getEmailById(#userId)")
+    @Operation(summary = "Get paginated notifications for a user (own or ADMIN)")
     public ApiResponse<Page<NotificationDTO>> getNotifications(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
@@ -30,16 +31,18 @@ public class NotificationController {
         return ApiResponse.success(notificationService.getNotificationsForUser(userId, page, size));
     }
 
+    // Unread badge count — own or ADMIN
     @GetMapping("/user/{userId}/unread-count")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getUserById(#userId).email")
-    @Operation(summary = "Get unread notification count for a user")
+    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getEmailById(#userId)")
+    @Operation(summary = "Get unread notification count (own or ADMIN)")
     public ApiResponse<Long> getUnreadCount(@PathVariable Long userId) {
         return ApiResponse.success(notificationService.getUnreadCount(userId));
     }
 
+    // Mark all read — own or ADMIN
     @PatchMapping("/user/{userId}/mark-all-read")
-    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getUserById(#userId).email")
-    @Operation(summary = "Mark all notifications as read for a user")
+    @PreAuthorize("hasRole('ADMIN') or authentication.name == @userService.getEmailById(#userId)")
+    @Operation(summary = "Mark all notifications as read (own or ADMIN)")
     public ApiResponse<Void> markAllRead(@PathVariable Long userId) {
         notificationService.markAllRead(userId);
         return ApiResponse.success("All notifications marked as read", null);

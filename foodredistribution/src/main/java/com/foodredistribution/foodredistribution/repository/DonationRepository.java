@@ -18,6 +18,31 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long> {
 
     long countByStatus(DonationStatus status);
 
+    long countByDonorUserId(Long donorId);
+
+    long countByDonorUserIdAndStatus(Long donorId, DonationStatus status);
+
+    // Single query — returns [total, available, requested, picked, delivered]
+    // Used by admin dashboard to avoid 5 round-trips
+    @Query("SELECT " +
+           "COUNT(d), " +
+           "SUM(CASE WHEN d.status = 'AVAILABLE'  THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'REQUESTED'  THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'PICKED'     THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'DELIVERED'  THEN 1 ELSE 0 END) " +
+           "FROM FoodDonation d")
+    Object[] aggregateAllStatuses();
+
+    // Single query for donor dashboard — counts per status for one donor
+    @Query("SELECT " +
+           "COUNT(d), " +
+           "SUM(CASE WHEN d.status = 'AVAILABLE'  THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'REQUESTED'  THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'PICKED'     THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'DELIVERED'  THEN 1 ELSE 0 END) " +
+           "FROM FoodDonation d WHERE d.donor.userId = :donorId")
+    Object[] aggregateByDonor(@Param("donorId") Long donorId);
+
     @Query("SELECT d FROM FoodDonation d WHERE " +
            "(:keyword  IS NULL OR LOWER(d.foodDescription) LIKE LOWER(CONCAT('%', :keyword,  '%'))) AND " +
            "(:foodType IS NULL OR LOWER(d.foodType)        LIKE LOWER(CONCAT('%', :foodType, '%'))) AND " +

@@ -57,6 +57,13 @@ public class FoodDonationService {
         return donationRepository.findByDonorUserId(donorId).stream().map(this::toDTO).toList();
     }
 
+    /** Used by @PreAuthorize SpEL — checks that the donor's email matches the authenticated user */
+    public boolean isDonorOwner(Long donorId, String email) {
+        return userRepository.findById(donorId)
+                .map(u -> u.getEmail().equals(email))
+                .orElse(false);
+    }
+
     public Page<FoodDonationDTO> search(DonationFilterDTO filter) {
         PageRequest pageable = PageRequest.of(filter.getPage(), filter.getSize());
         return donationRepository.search(
