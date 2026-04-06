@@ -4,6 +4,7 @@ import com.foodredistribution.foodredistribution.aspect.Auditable;
 import com.foodredistribution.foodredistribution.entity.AuditAction;
 import com.foodredistribution.foodredistribution.dto.DonationFilterDTO;
 import com.foodredistribution.foodredistribution.dto.FoodDonationDTO;
+import com.foodredistribution.foodredistribution.dto.NearbySearchRequest;
 import com.foodredistribution.foodredistribution.entity.DonationStatus;
 import com.foodredistribution.foodredistribution.entity.FoodDonation;
 import com.foodredistribution.foodredistribution.entity.User;
@@ -13,7 +14,7 @@ import com.foodredistribution.foodredistribution.event.DonationCreatedEvent;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.DonationSpecification;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
-import com.foodredistribution.foodredistribution.service.StorageService;
+import com.foodredistribution.foodredistribution.util.GeoUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -51,6 +52,8 @@ public class FoodDonationService {
         donation.setLocation(dto.getLocation());
         donation.setQuantity(dto.getQuantity());
         donation.setExpiryDate(dto.getExpiryDate());
+        donation.setLatitude(dto.getLatitude());
+        donation.setLongitude(dto.getLongitude());
         donation.setStatus(DonationStatus.AVAILABLE);
         donation.setDonor(donor);
 
@@ -89,6 +92,30 @@ public class FoodDonationService {
         return userRepository.findById(donorId)
                 .map(u -> u.getEmail().equals(email))
                 .orElse(false);
+    }
+
+    /**
+     * Returns donations within the requested radius, sorted by distance ascending.
+     * Each result has distanceKm populated for frontend map display.
+     */
+    public Page<FoodDonationDTO> searchNearby(NearbySearchRequest request) {
+        PageRequest pageable = PageRequest.of(request.getPage(), request.getSize());
+        String status = request.getStatus() != null
+                ? request.getStatus().name() : DonationStatus.AVAILABLE.name();
+
+        return donationRepository.findNearby(
+                request.getLatitude(), request.getLongitude(),
+                request.getRadiusKm(), status, pageable)
+                .map(donation -> {
+                    FoodDonationDTO dto = toDTO(donation);
+                    if (donation.getLatitude() != null && donation.getLongitude() != null) {
+                        double dist = GeoUtils.distanceKm(
+                                request.getLatitude(), request.getLongitude(),
+                                donation.getLatitude(), donation.getLongitude());
+                        dto.setDistanceKm(Math.round(dist * 100.0) / 100.0);
+                    }
+                    return dto;
+                });
     }
 
     /**
@@ -150,6 +177,8 @@ public class FoodDonationService {
         dto.setQuantity(donation.getQuantity());
         dto.setExpiryDate(donation.getExpiryDate());
         dto.setImageUrl(donation.getImageUrl());
+        dto.setLatitude(donation.getLatitude());
+        dto.setLongitude(donation.getLongitude());
         dto.setStatus(donation.getStatus());
         dto.setDonorId(donation.getDonor() != null ? donation.getDonor().getUserId() : null);
         dto.setCreatedAt(donation.getCreatedAt());

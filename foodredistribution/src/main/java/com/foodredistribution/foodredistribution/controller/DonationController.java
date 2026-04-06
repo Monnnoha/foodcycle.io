@@ -3,6 +3,7 @@ package com.foodredistribution.foodredistribution.controller;
 import com.foodredistribution.foodredistribution.dto.ApiResponse;
 import com.foodredistribution.foodredistribution.dto.DonationFilterDTO;
 import com.foodredistribution.foodredistribution.dto.FoodDonationDTO;
+import com.foodredistribution.foodredistribution.dto.NearbySearchRequest;
 import com.foodredistribution.foodredistribution.entity.DonationStatus;
 import com.foodredistribution.foodredistribution.service.FoodDonationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,6 +90,23 @@ public class DonationController {
     @Operation(summary = "Search donations — filters: keyword, foodType, city, status, donorId, dateFrom, dateTo | sort: createdAt | quantity | expiryDate | dir: asc | desc")
     public ApiResponse<Page<FoodDonationDTO>> search(@ModelAttribute DonationFilterDTO filter) {
         return ApiResponse.success(donationService.search(filter));
+    }
+
+    /**
+     * GET /api/donations/nearby
+     * Returns donations within a radius of the given coordinates, sorted by distance.
+     * Query params: lat, lon, radiusKm (default 10), status (default AVAILABLE), page, size
+     *
+     * Frontend Google Maps usage:
+     *   navigator.geolocation.getCurrentPosition(pos => {
+     *     fetch(`/api/donations/nearby?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&radiusKm=5`)
+     *   });
+     */
+    @GetMapping("/nearby")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Find donations near a location — returns results sorted by distance with distanceKm field")
+    public ApiResponse<Page<FoodDonationDTO>> searchNearby(@ModelAttribute NearbySearchRequest request) {
+        return ApiResponse.success(donationService.searchNearby(request));
     }
 
     @PatchMapping("/{id}/advance")

@@ -24,37 +24,74 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long>,
 
     long countByDonorUserIdAndStatus(Long donorId, DonationStatus status);
 
-    // Single query — returns [total, available, requested, picked, delivered]
-    // Used by admin dashboard to avoid 5 round-trips
-    @Query("SELECT " +
-           "COUNT(d), " +
-           "SUM(CASE WHEN d.status = 'AVAILABLE'  THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'REQUESTED'  THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'PICKED'     THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'DELIVERED'  THEN 1 ELSE 0 END) " +
+    // Single aggregation — admin dashboard (avoids 5 round-trips)
+    @Query("SELECT COUNT(d), " +
+           "SUM(CASE WHEN d.status = 'AVAILABLE' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'REQUESTED' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'PICKED'    THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'DELIVERED' THEN 1 ELSE 0 END) " +
            "FROM FoodDonation d")
     Object[] aggregateAllStatuses();
 
-    // Single query for donor dashboard — counts per status for one donor
-    @Query("SELECT " +
-           "COUNT(d), " +
-           "SUM(CASE WHEN d.status = 'AVAILABLE'  THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'REQUESTED'  THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'PICKED'     THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN d.status = 'DELIVERED'  THEN 1 ELSE 0 END) " +
+    // Single aggregation scoped to one donor — donor dashboard
+    @Query("SELECT COUNT(d), " +
+           "SUM(CASE WHEN d.status = 'AVAILABLE' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'REQUESTED' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'PICKED'    THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN d.status = 'DELIVERED' THEN 1 ELSE 0 END) " +
            "FROM FoodDonation d WHERE d.donor.userId = :donorId")
     Object[] aggregateByDonor(@Param("donorId") Long donorId);
+
+    /**
+     * Haversine nearby search using native SQL.
+     *
+     * Returns donations within :radiusKm kilometres of (:lat, :lon).
+     * The Haversine formula is computed in SQL so only matching rows are
+     * returned — no full table scan + in-memory filter.
+     *
+     * Formula:
+     *   distance = 2 * R * ASIN(SQRT(
+     *     POWER(SIN(RADIANS(d.latitude  - :lat) / 2), 2) +
+     *     COS(RADIANS(:lat)) * COS(RADIANS(d.latitude)) *
+     *     POWER(SIN(RADIANS(d.longitude - :lon) / 2), 2)
+     *   ))
+     * where R = 6371 km (Earth radius).
+     *
+     * Columns returned: all FoodDonation columns + distance_km alias.
+     * Spring Data maps the entity columns automatically; distanceKm is
+     * extracted separately in the service layer.
+     */
+    @Query(value =
+        "SELECT d.*, " +
+        "  (6371 * 2 * ASIN(SQRT(" +
+        "    POWER(SIN(RADIANS(d.latitude  - :lat) / 2), 2) + " +
+        "    COS(RADIANS(:lat)) * COS(RADIANS(d.latitude)) * " +
+        "    POWER(SIN(RADIANS(d.longitude - :lon) / 2), 2)" +
+        "  ))) AS distance_km " +
+        "FROM food_donations d " +
+        "WHERE d.latitude  IS NOT NULL " +
+        "  AND d.longitude IS NOT NULL " +
+        "  AND d.status = :status " +
+        "  AND (6371 * 2 * ASIN(SQRT(" +
+        "    POWER(SIN(RADIANS(d.latitude  - :lat) / 2), 2) + " +
+        "    COS(RADIANS(:lat)) * COS(RADIANS(d.latitude)) * " +
+        "    POWER(SIN(RADIANS(d.longitude - :lon) / 2), 2)" +
+        "  ))) <= :radiusKm " +
+        "ORDER BY distance_km ASC",
+        countQuery =
+        "SELECT COUNT(*) FROM food_donations d " +
+        "WHERE d.latitude IS NOT NULL AND d.longitude IS NOT NULL " +
+        "  AND d.status = :status " +
+        "  AND (6371 * 2 * ASIN(SQRT(" +
+        "    POWER(SIN(RADIANS(d.latitude  - :lat) / 2), 2) + " +
+        "    COS(RADIANS(:lat)) * COS(RADIANS(d.latitude)) * " +
+        "    POWER(SIN(RADIANS(d.longitude - :lon) / 2), 2)" +
+        "  ))) <= :radiusKm",
+        nativeQuery = true)
+    Page<FoodDonation> findNearby(
+            @Param("lat")      double lat,
+            @Param("lon")      double lon,
+            @Param("radiusKm") double radiusKm,
+            @Param("status")   String status,
+            Pageable pageable);
 }
-           "(:keyword  IS NULL OR LOWER(d.foodDescription) LIKE LOWER(CONCAT('%', :keyword,  '%'))) AND " +
-           "(:foodType IS NULL OR LOWER(d.foodType)        LIKE LOWER(CONCAT('%', :foodType, '%'))) AND " +
-           "(:city     IS NULL OR LOWER(d.city)            LIKE LOWER(CONCAT('%', :city,     '%'))) AND " +
-           "(:status   IS NULL OR d.status = :status) AND " +
-           "(:donorId  IS NULL OR d.donor.userId = :donorId)")
-    Page<FoodDonation> search(
-            @Param("keyword")  String keyword,
-            @Param("foodType") String foodType,
-            @Param("city")     String city,
-            @Param("status")   DonationStatus status,
-            @Param("donorId")  Long donorId,
-            Pageable pageable
-    );

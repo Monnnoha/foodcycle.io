@@ -27,6 +27,13 @@ public class FoodDonationDTO {
 
     private String location;
 
+    private Double latitude;
+
+    private Double longitude;
+
+    /** Populated only on nearby search responses — null otherwise */
+    private Double distanceKm;
+
     @Min(value = 1, message = "Quantity must be at least 1")
     private int quantity;
 

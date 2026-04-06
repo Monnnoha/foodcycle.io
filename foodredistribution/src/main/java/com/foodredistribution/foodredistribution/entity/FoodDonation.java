@@ -32,6 +32,12 @@ public class FoodDonation extends BaseEntity {
     @Column(length = 300)
     private String location;        // street address or landmark
 
+    @Column(precision = 10)
+    private Double latitude;
+
+    @Column(precision = 10)
+    private Double longitude;
+
     @Column(nullable = false)
     private int quantity;
 
