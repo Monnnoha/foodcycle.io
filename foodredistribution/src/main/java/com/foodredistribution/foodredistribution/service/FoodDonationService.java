@@ -13,6 +13,7 @@ import com.foodredistribution.foodredistribution.event.DonationCreatedEvent;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.DonationSpecification;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
+import com.foodredistribution.foodredistribution.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -35,8 +36,11 @@ public class FoodDonationService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private StorageService storageService;
+
     @Auditable(action = AuditAction.DONATION_CREATED, entity = "FoodDonation")
-    public FoodDonationDTO createDonation(FoodDonationDTO dto) {
+    public FoodDonationDTO createDonation(FoodDonationDTO dto, org.springframework.web.multipart.MultipartFile image) {
         User donor = userRepository.findById(dto.getDonorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Donor not found with id: " + dto.getDonorId()));
 
@@ -50,9 +54,18 @@ public class FoodDonationService {
         donation.setStatus(DonationStatus.AVAILABLE);
         donation.setDonor(donor);
 
+        if (image != null && !image.isEmpty()) {
+            donation.setImageUrl(storageService.store(image, "donations"));
+        }
+
         FoodDonation saved = donationRepository.save(donation);
         eventPublisher.publishEvent(new DonationCreatedEvent(this, saved));
         return toDTO(saved);
+    }
+
+    // Keep backward-compatible overload for tests and internal calls
+    public FoodDonationDTO createDonation(FoodDonationDTO dto) {
+        return createDonation(dto, null);
     }
 
     public FoodDonationDTO getDonation(Long id) {
@@ -76,6 +89,20 @@ public class FoodDonationService {
         return userRepository.findById(donorId)
                 .map(u -> u.getEmail().equals(email))
                 .orElse(false);
+    }
+
+    /**
+     * Upload or replace the image for an existing donation.
+     * Old image is deleted from storage before the new one is saved.
+     */
+    public FoodDonationDTO uploadImage(Long donationId, org.springframework.web.multipart.MultipartFile file) {
+        FoodDonation donation = findById(donationId);
+        if (donation.getImageUrl() != null) {
+            storageService.delete(donation.getImageUrl());
+        }
+        String url = storageService.store(file, "donations");
+        donation.setImageUrl(url);
+        return toDTO(donationRepository.save(donation));
     }
 
     // Allowed sort fields — whitelist prevents injection via sortBy param
@@ -122,6 +149,7 @@ public class FoodDonationService {
         dto.setLocation(donation.getLocation());
         dto.setQuantity(donation.getQuantity());
         dto.setExpiryDate(donation.getExpiryDate());
+        dto.setImageUrl(donation.getImageUrl());
         dto.setStatus(donation.getStatus());
         dto.setDonorId(donation.getDonor() != null ? donation.getDonor().getUserId() : null);
         dto.setCreatedAt(donation.getCreatedAt());

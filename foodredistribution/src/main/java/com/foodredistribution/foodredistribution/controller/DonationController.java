@@ -12,8 +12,10 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,16 +28,34 @@ public class DonationController {
     @Autowired
     private FoodDonationService donationService;
 
-    // DONOR creates a donation
-    @PostMapping
+    /**
+     * Create a donation with an optional image in one multipart request.
+     * Content-Type: multipart/form-data
+     * Fields: donation (JSON part) + image (file part, optional)
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('DONOR')")
-    @Operation(summary = "Create a donation (DONOR only)")
-    public ApiResponse<FoodDonationDTO> createDonation(@Valid @RequestBody FoodDonationDTO donationDTO) {
-        return ApiResponse.success("Donation created", donationService.createDonation(donationDTO));
+    @Operation(summary = "Create a donation with optional image upload (DONOR only)")
+    public ApiResponse<FoodDonationDTO> createDonation(
+            @RequestPart("donation") @Valid FoodDonationDTO donationDTO,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        return ApiResponse.success("Donation created", donationService.createDonation(donationDTO, image));
     }
 
-    // ADMIN, NGO, VOLUNTEER can browse all donations
+    /**
+     * Upload or replace the image for an existing donation.
+     * Content-Type: multipart/form-data
+     */
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('DONOR') and @donationService.isDonorOwner(#id, authentication.name))")
+    @Operation(summary = "Upload or replace donation image (DONOR owns it, ADMIN any)")
+    public ApiResponse<FoodDonationDTO> uploadImage(
+            @PathVariable Long id,
+            @RequestPart("image") MultipartFile image) {
+        return ApiResponse.success("Image uploaded", donationService.uploadImage(id, image));
+    }
+
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NGO', 'VOLUNTEER')")
     @Operation(summary = "List all donations (ADMIN, NGO, VOLUNTEER)")
@@ -43,7 +63,6 @@ public class DonationController {
         return ApiResponse.success(donationService.getAllDonations());
     }
 
-    // Any authenticated user can view a single donation
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get donation by ID (all authenticated roles)")
@@ -51,7 +70,6 @@ public class DonationController {
         return ApiResponse.success(donationService.getDonation(id));
     }
 
-    // ADMIN, NGO, VOLUNTEER can filter by status
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NGO', 'VOLUNTEER')")
     @Operation(summary = "Get donations by status (ADMIN, NGO, VOLUNTEER)")
@@ -59,7 +77,6 @@ public class DonationController {
         return ApiResponse.success(donationService.getDonationsByStatus(status));
     }
 
-    // DONOR can view only their own donations; ADMIN can view any donor's
     @GetMapping("/donor/{donorId}")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('DONOR') and @donationService.isDonorOwner(#donorId, authentication.name))")
     @Operation(summary = "Get donations by donor — DONOR sees own only, ADMIN sees any")
@@ -67,7 +84,6 @@ public class DonationController {
         return ApiResponse.success(donationService.getDonationsByDonor(donorId));
     }
 
-    // All roles can search with filters
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Search donations — filters: keyword, foodType, city, status, donorId, dateFrom, dateTo | sort: createdAt | quantity | expiryDate | dir: asc | desc")
@@ -75,7 +91,6 @@ public class DonationController {
         return ApiResponse.success(donationService.search(filter));
     }
 
-    // ADMIN-only manual status advance (admin tooling / backfill)
     @PatchMapping("/{id}/advance")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Advance donation status manually (ADMIN only)")

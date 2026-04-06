@@ -37,6 +37,9 @@ public class FoodDonation extends BaseEntity {
 
     private LocalDate expiryDate;
 
+    @Column(length = 500)
+    private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DonationStatus status;

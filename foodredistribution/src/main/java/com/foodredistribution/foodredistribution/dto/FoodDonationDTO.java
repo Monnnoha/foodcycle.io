@@ -32,6 +32,8 @@ public class FoodDonationDTO {
 
     private LocalDate expiryDate;
 
+    private String imageUrl;
+
     private DonationStatus status;
 
     @NotNull(message = "Donor ID is required")
