@@ -5,10 +5,10 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 3000,
-        // Proxy API calls to Spring Boot — avoids CORS in dev
         proxy: {
+            // Proxy API calls to Spring Boot — avoids CORS in dev
             '/api': 'http://localhost:8080',
-            '/actuator': 'http://localhost:8080',
+            '/uploads': 'http://localhost:8080',
         },
     },
 });
