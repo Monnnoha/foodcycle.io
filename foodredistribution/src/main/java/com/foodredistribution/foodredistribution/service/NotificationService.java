@@ -115,12 +115,12 @@ public class NotificationService {
 
     public Page<NotificationDTO> getUnreadNotificationsForUser(Long userId, int page, int size) {
         return notificationRepository
-                .findByRecipientUserIdAndReadFalseOrderByCreatedAtDesc(userId, PageRequest.of(page, size))
+                .findByRecipientUserIdAndIsReadFalseOrderByCreatedAtDesc(userId, PageRequest.of(page, size))
                 .map(this::toDTO);
     }
 
     public long getUnreadCount(Long userId) {
-        return notificationRepository.countByRecipientUserIdAndReadFalse(userId);
+        return notificationRepository.countByRecipientUserIdAndIsReadFalse(userId);
     }
 
     // ── Mutations ─────────────────────────────────────────────────────────────

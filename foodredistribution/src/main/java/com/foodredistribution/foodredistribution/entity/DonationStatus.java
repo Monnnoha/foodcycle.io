@@ -4,7 +4,8 @@ public enum DonationStatus {
     AVAILABLE,
     REQUESTED,
     PICKED,
-    DELIVERED;
+    DELIVERED,
+    EXPIRED;
 
     public DonationStatus next() {
         return switch (this) {
@@ -12,6 +13,7 @@ public enum DonationStatus {
             case REQUESTED -> PICKED;
             case PICKED    -> DELIVERED;
             case DELIVERED -> throw new IllegalStateException("Donation already delivered");
+            case EXPIRED   -> throw new IllegalStateException("Donation has expired");
         };
     }
 }

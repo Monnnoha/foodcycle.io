@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -29,6 +30,7 @@ class PickupServiceTest {
     @Mock private DonationRepository donationRepository;
     @Mock private UserRepository userRepository;
     @Mock private FoodDonationService donationService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PickupService pickupService;
@@ -123,7 +125,13 @@ class PickupServiceTest {
         when(donationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(donationService.toDTO(any())).thenAnswer(inv -> {
             FoodDonation d = inv.getArgument(0);
-            return new FoodDonationDTO(d.getDonationId(), d.getFoodDescription(), d.getQuantity(), d.getStatus(), 1L);
+            FoodDonationDTO r = new FoodDonationDTO();
+            r.setDonationId(d.getDonationId());
+            r.setFoodDescription(d.getFoodDescription());
+            r.setQuantity(d.getQuantity());
+            r.setStatus(d.getStatus());
+            r.setDonorId(1L);
+            return r;
         });
 
         FoodDonationDTO result = pickupService.markPicked(10L);
@@ -150,7 +158,13 @@ class PickupServiceTest {
         when(donationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(donationService.toDTO(any())).thenAnswer(inv -> {
             FoodDonation d = inv.getArgument(0);
-            return new FoodDonationDTO(d.getDonationId(), d.getFoodDescription(), d.getQuantity(), d.getStatus(), 1L);
+            FoodDonationDTO r = new FoodDonationDTO();
+            r.setDonationId(d.getDonationId());
+            r.setFoodDescription(d.getFoodDescription());
+            r.setQuantity(d.getQuantity());
+            r.setStatus(d.getStatus());
+            r.setDonorId(1L);
+            return r;
         });
 
         FoodDonationDTO result = pickupService.markDelivered(10L);

@@ -14,7 +14,7 @@ public class NotificationDTO {
     private Long notificationId;
     private String title;
     private String message;
-    private boolean read;
+    private boolean isRead;
     private NotificationType type;
     private Long donationId;
     private LocalDateTime createdAt;

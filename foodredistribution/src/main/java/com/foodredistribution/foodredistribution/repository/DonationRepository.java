@@ -24,6 +24,26 @@ public interface DonationRepository extends JpaRepository<FoodDonation, Long>,
 
     long countByDonorUserIdAndStatus(Long donorId, DonationStatus status);
 
+    /**
+     * Find donations that have passed their expiry date and are still in
+     * an active state (AVAILABLE or REQUESTED). Used by the expiry scheduler.
+     */
+    @Query("SELECT d FROM FoodDonation d WHERE d.expiryDate IS NOT NULL " +
+           "AND d.expiryDate < :today " +
+           "AND d.status IN ('AVAILABLE', 'REQUESTED')")
+    List<FoodDonation> findExpiredActiveDonations(@Param("today") java.time.LocalDate today);
+
+    /**
+     * Bulk status update — more efficient than loading + saving each entity
+     * individually when expiring large batches.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE FoodDonation d SET d.status = 'EXPIRED' " +
+           "WHERE d.expiryDate IS NOT NULL " +
+           "AND d.expiryDate < :today " +
+           "AND d.status IN ('AVAILABLE', 'REQUESTED')")
+    int bulkExpire(@Param("today") java.time.LocalDate today);
+
     // Single aggregation — admin dashboard (avoids 5 round-trips)
     @Query("SELECT COUNT(d), " +
            "SUM(CASE WHEN d.status = 'AVAILABLE' THEN 1 ELSE 0 END), " +

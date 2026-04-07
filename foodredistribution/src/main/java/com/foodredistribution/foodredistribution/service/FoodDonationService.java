@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -42,6 +43,10 @@ public class FoodDonationService {
 
     @Auditable(action = AuditAction.DONATION_CREATED, entity = "FoodDonation")
     public FoodDonationDTO createDonation(FoodDonationDTO dto, org.springframework.web.multipart.MultipartFile image) {
+        if (dto.getExpiryDate() != null && dto.getExpiryDate().isBefore(LocalDate.now())) {
+            throw new BadRequestException("Expiry date cannot be in the past");
+        }
+
         User donor = userRepository.findById(dto.getDonorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Donor not found with id: " + dto.getDonorId()));
 

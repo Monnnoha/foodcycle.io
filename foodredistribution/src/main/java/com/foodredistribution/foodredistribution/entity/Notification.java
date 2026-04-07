@@ -27,8 +27,8 @@ public class Notification extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String message;
 
-    @Column(nullable = false)
-    private boolean read = false;
+    @Column(name = "is_read", nullable = false)
+    private boolean isRead = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

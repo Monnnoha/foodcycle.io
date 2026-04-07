@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "food_donations")
+@Table(name = "food_donations",
+       indexes = @Index(name = "idx_donation_donor", columnList = "donor_id"))
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor

@@ -34,9 +34,11 @@ public class SecurityConfig {
     @Autowired
     private CorsConfigurationSource corsConfigurationSource;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
 
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -56,13 +58,13 @@ public class SecurityConfig {
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(401);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    mapper.writeValue(response.getWriter(), ApiResponse.error("Authentication required"));
+                    objectMapper.writeValue(response.getWriter(), ApiResponse.error("Authentication required"));
                 })
                 // 403 — authenticated but wrong role
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     response.setStatus(403);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    mapper.writeValue(response.getWriter(), ApiResponse.error("Access denied: insufficient role"));
+                    objectMapper.writeValue(response.getWriter(), ApiResponse.error("Access denied: insufficient role"));
                 })
             )
             .authenticationProvider(authenticationProvider())

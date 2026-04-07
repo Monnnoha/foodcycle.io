@@ -9,12 +9,15 @@ import com.foodredistribution.foodredistribution.exception.BadRequestException;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
 import com.foodredistribution.foodredistribution.repository.DonationRepository;
 import com.foodredistribution.foodredistribution.repository.UserRepository;
+import com.foodredistribution.foodredistribution.service.FoodDonationService;
+import com.foodredistribution.foodredistribution.service.StorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -31,6 +34,12 @@ class FoodDonationServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private StorageService storageService;
 
     @InjectMocks
     private FoodDonationService donationService;
@@ -56,7 +65,10 @@ class FoodDonationServiceTest {
 
     @Test
     void createDonation_success_setsStatusAvailable() {
-        FoodDonationDTO dto = new FoodDonationDTO(null, "Rice bags", 10, null, 1L);
+        FoodDonationDTO dto = new FoodDonationDTO();
+        dto.setFoodDescription("Rice bags");
+        dto.setQuantity(10);
+        dto.setDonorId(1L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(donor));
         when(donationRepository.save(any(FoodDonation.class))).thenReturn(donation);
@@ -72,7 +84,10 @@ class FoodDonationServiceTest {
 
     @Test
     void createDonation_donorNotFound_throwsResourceNotFoundException() {
-        FoodDonationDTO dto = new FoodDonationDTO(null, "Rice bags", 10, null, 99L);
+        FoodDonationDTO dto = new FoodDonationDTO();
+        dto.setFoodDescription("Rice bags");
+        dto.setQuantity(10);
+        dto.setDonorId(99L);
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> donationService.createDonation(dto))
