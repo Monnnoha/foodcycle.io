@@ -9,7 +9,12 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
     name = "pickup_requests",
-    uniqueConstraints = @UniqueConstraint(name = "uk_pickup_donation", columnNames = "donation_id")
+    uniqueConstraints = @UniqueConstraint(name = "uk_pickup_donation", columnNames = "donation_id"),
+    indexes = {
+        @Index(name = "idx_pickup_donation",  columnList = "donation_id"),
+        @Index(name = "idx_pickup_volunteer", columnList = "volunteer_id"),
+        @Index(name = "idx_pickup_ngo",       columnList = "ngo_id")
+    }
 )
 @Data
 @EqualsAndHashCode(callSuper = false)

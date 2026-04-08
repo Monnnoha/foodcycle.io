@@ -6,7 +6,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications",
+       indexes = @Index(name = "idx_notification_user", columnList = "user_id"))
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
