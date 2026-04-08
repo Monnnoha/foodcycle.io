@@ -18,6 +18,14 @@ export function usePickup(id) {
     });
 }
 
+export function usePickupByDonation(donationId) {
+    return useQuery({
+        queryKey: ['pickups', 'donation', donationId],
+        queryFn: () => pickupService.getByDonation(donationId),
+        enabled: !!donationId,
+    });
+}
+
 export function useRequestPickup() {
     const qc = useQueryClient();
     return useMutation({
@@ -25,7 +33,32 @@ export function useRequestPickup() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['pickups'] });
             qc.invalidateQueries({ queryKey: ['donations'] });
-            toast.success('Pickup requested');
+            toast.success('Pickup requested successfully');
+        },
+        onError: (err) => toast.error(err.message),
+    });
+}
+
+export function useUpdatePickup() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, payload }) => pickupService.update(id, payload),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['pickups'] });
+            toast.success('Pickup updated');
+        },
+        onError: (err) => toast.error(err.message),
+    });
+}
+
+export function useCancelPickup() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: pickupService.cancel,
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['pickups'] });
+            qc.invalidateQueries({ queryKey: ['donations'] });
+            toast.success('Pickup cancelled');
         },
         onError: (err) => toast.error(err.message),
     });

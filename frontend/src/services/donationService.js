@@ -1,18 +1,12 @@
 import api from './api';
 
 export const donationService = {
-    // Create donation — multipart if image provided, JSON otherwise
+    // Create donation — ALWAYS multipart (backend requires it)
     async create(donationData, imageFile) {
-        if (imageFile) {
-            const form = new FormData();
-            form.append('donation', new Blob([JSON.stringify(donationData)], { type: 'application/json' }));
-            form.append('image', imageFile);
-            const { data } = await api.post('/donations', form, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            return data.data;
-        }
-        const { data } = await api.post('/donations', donationData);
+        const form = new FormData();
+        form.append('donation', new Blob([JSON.stringify(donationData)], { type: 'application/json' }));
+        if (imageFile) form.append('image', imageFile);
+        const { data } = await api.post('/donations', form);
         return data.data;
     },
 

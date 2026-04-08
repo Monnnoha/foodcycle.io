@@ -37,11 +37,34 @@ export function useNearbyDonations(params) {
 export function useCreateDonation() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: ({ donationData, imageFile }) =>
-            donationService.create(donationData, imageFile),
+        mutationFn: ({ donationData, imageFile }) => donationService.create(donationData, imageFile),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['donations'] });
             toast.success('Donation created successfully');
+        },
+        onError: (err) => toast.error(err.message),
+    });
+}
+
+export function useAdvanceDonationStatus() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id) => donationService.advanceStatus(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['donations'] });
+            toast.success('Status advanced');
+        },
+        onError: (err) => toast.error(err.message),
+    });
+}
+
+export function useUploadDonationImage() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, imageFile }) => donationService.uploadImage(id, imageFile),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['donations'] });
+            toast.success('Image uploaded');
         },
         onError: (err) => toast.error(err.message),
     });
