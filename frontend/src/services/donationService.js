@@ -6,7 +6,10 @@ export const donationService = {
         const form = new FormData();
         form.append('donation', new Blob([JSON.stringify(donationData)], { type: 'application/json' }));
         if (imageFile) form.append('image', imageFile);
-        const { data } = await api.post('/donations', form);
+        // Do NOT set Content-Type — browser sets it automatically with the correct multipart boundary
+        const { data } = await api.post('/donations', form, {
+            headers: { 'Content-Type': undefined },
+        });
         return data.data;
     },
 
@@ -41,7 +44,7 @@ export const donationService = {
         const form = new FormData();
         form.append('image', imageFile);
         const { data } = await api.post(`/donations/${id}/image`, form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+            headers: { 'Content-Type': undefined },
         });
         return data.data;
     },

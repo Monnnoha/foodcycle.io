@@ -1,6 +1,23 @@
 /** @type {import('tailwindcss').Config} */
 export default {
     content: ['./index.html', './src/**/*.{js,jsx}'],
-    theme: { extend: {} },
-    plugins: [],
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Inter', 'system-ui', 'sans-serif'],
+            },
+        },
+    },
+    plugins: [
+        // scrollbar-hide utility
+        function ({ addUtilities }) {
+            addUtilities({
+                '.scrollbar-hide': {
+                    '-ms-overflow-style': 'none',
+                    'scrollbar-width': 'none',
+                    '&::-webkit-scrollbar': { display: 'none' },
+                },
+            });
+        },
+    ],
 };

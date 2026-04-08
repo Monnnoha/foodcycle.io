@@ -2,7 +2,8 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
-import { Leaf, User, Mail, Lock, ArrowRight, Package, Truck, Building2 } from 'lucide-react';
+import { Leaf, User, Mail, ArrowRight, Package, Truck, Building2 } from 'lucide-react';
+import PasswordInput from '../components/common/PasswordInput';
 
 const ROLES = [
     { value: 'DONOR', label: 'Donor', desc: 'Share surplus food', icon: Package, color: 'emerald' },
@@ -82,7 +83,6 @@ export default function Register() {
                         {[
                             { name: 'name', label: 'Full Name', type: 'text', icon: User, placeholder: 'John Doe' },
                             { name: 'email', label: 'Email', type: 'email', icon: Mail, placeholder: 'you@example.com' },
-                            { name: 'password', label: 'Password', type: 'password', icon: Lock, placeholder: '••••••••' },
                         ].map(({ name, label, type, icon: Icon, placeholder }) => (
                             <div key={name}>
                                 <label className="field-label">{label}</label>
@@ -95,6 +95,19 @@ export default function Register() {
                                 {errors[name] && <p className="field-error">{errors[name].message}</p>}
                             </div>
                         ))}
+
+                        <div>
+                            <label className="field-label">Password</label>
+                            <PasswordInput
+                                {...register('password', {
+                                    required: 'Password is required',
+                                    minLength: { value: 6, message: 'At least 6 characters' },
+                                })}
+                                placeholder="Min. 6 characters"
+                                error={errors.password}
+                            />
+                            {errors.password && <p className="field-error">{errors.password.message}</p>}
+                        </div>
 
                         <div>
                             <label className="field-label">I want to</label>

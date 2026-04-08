@@ -2,7 +2,8 @@ import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Leaf, Mail, Lock, ArrowRight, Package, Truck, Building2 } from 'lucide-react';
+import { Leaf, Mail, ArrowRight, Package, Truck, Building2 } from 'lucide-react';
+import PasswordInput from '../components/common/PasswordInput';
 
 const STATS = [
     { value: '2,400+', label: 'Donations made' },
@@ -114,11 +115,10 @@ export default function Login() {
 
                         <div>
                             <label className="field-label">Password</label>
-                            <div className="relative">
-                                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <input type="password" {...register('password', { required: 'Password is required' })}
-                                    placeholder="••••••••" className="field pl-9" autoComplete="current-password" />
-                            </div>
+                            <PasswordInput
+                                {...register('password', { required: 'Password is required' })}
+                                error={errors.password}
+                            />
                             {errors.password && <p className="field-error">{errors.password.message}</p>}
                         </div>
 

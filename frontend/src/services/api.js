@@ -17,11 +17,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (res) => res,
     (err) => {
-        if (err.response?.status === 401) {
+        // Only redirect on 401 for non-auth endpoints
+        if (err.response?.status === 401 && !err.config?.url?.includes('/auth/')) {
             localStorage.clear();
             window.location.href = '/login';
         }
-        // Unwrap the ApiResponse error message for easy consumption
         const message = err.response?.data?.message || 'Something went wrong';
         return Promise.reject(new Error(message));
     }
