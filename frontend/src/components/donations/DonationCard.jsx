@@ -1,73 +1,71 @@
-import { MapPin, Package, Calendar, Tag } from 'lucide-react';
+import { MapPin, Package, Calendar, Tag, Clock, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import StatusBadge from '../common/StatusBadge';
 
-const STATUS_STYLES = {
-    AVAILABLE: 'bg-green-100 text-green-700',
-    REQUESTED: 'bg-yellow-100 text-yellow-700',
-    PICKED: 'bg-blue-100 text-blue-700',
-    DELIVERED: 'bg-gray-100 text-gray-600',
-};
+function isExpiringSoon(d) {
+    if (!d) return false;
+    const diff = new Date(d) - new Date();
+    return diff > 0 && diff < 3 * 86400000;
+}
 
-export default function DonationCard({ donation, actions }) {
-    const {
-        donationId, foodDescription, foodType, city, location,
-        quantity, status, imageUrl, expiryDate, distanceKm,
-    } = donation;
+export default function DonationCard({ donation, onRequestPickup }) {
+    const { donationId, foodDescription, foodType, city, location, quantity, status, imageUrl, expiryDate, distanceKm } = donation;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-            {imageUrl && (
-                <img
-                    src={imageUrl}
-                    alt={foodDescription}
-                    className="w-full h-40 object-cover"
-                />
+        <div className="card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+            {imageUrl ? (
+                <img src={imageUrl} alt={foodDescription} className="w-full h-44 object-cover" />
+            ) : (
+                <div className="w-full h-44 bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+                    <Package size={36} className="text-green-300" />
+                </div>
             )}
 
-            <div className="p-4 space-y-3">
+            <div className="p-4 flex flex-col flex-1 gap-3">
                 <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-gray-900 leading-tight">{foodDescription}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {status}
-                    </span>
+                    <h3 className="font-bold text-gray-900 leading-snug line-clamp-2 text-sm">{foodDescription}</h3>
+                    <StatusBadge status={status} />
                 </div>
 
-                <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                    {foodType && (
-                        <span className="flex items-center gap-1">
-                            <Tag size={14} /> {foodType}
-                        </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                        <Package size={14} /> {quantity} units
-                    </span>
-                    {(city || location) && (
-                        <span className="flex items-center gap-1">
-                            <MapPin size={14} /> {city || location}
-                        </span>
-                    )}
+                <div className="flex flex-wrap gap-1.5">
+                    {foodType && <Chip icon={Tag}>{foodType}</Chip>}
+                    <Chip icon={Package}>{quantity} units</Chip>
+                    {(city || location) && <Chip icon={MapPin}>{city || location}</Chip>}
                     {distanceKm != null && (
-                        <span className="flex items-center gap-1 text-green-600 font-medium">
-                            <MapPin size={14} /> {distanceKm} km away
-                        </span>
-                    )}
-                    {expiryDate && (
-                        <span className="flex items-center gap-1">
-                            <Calendar size={14} /> Expires {expiryDate}
+                        <span className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 font-semibold px-2 py-1 rounded-lg">
+                            <MapPin size={11} /> {distanceKm} km
                         </span>
                     )}
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
-                    <Link
-                        to={`/donations/${donationId}`}
-                        className="text-sm text-green-600 hover:underline font-medium"
-                    >
-                        View details
+                {expiryDate && (
+                    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium w-fit ${isExpiringSoon(expiryDate) ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-500'}`}>
+                        {isExpiringSoon(expiryDate) ? <Clock size={11} /> : <Calendar size={11} />}
+                        {isExpiringSoon(expiryDate) ? 'Expires soon: ' : ''}{expiryDate}
+                    </div>
+                )}
+
+                <div className="flex items-center gap-2 mt-auto pt-1">
+                    <Link to={`/donations/${donationId}`}
+                        className="text-xs font-semibold text-green-600 hover:text-green-700 hover:underline">
+                        View details →
                     </Link>
-                    {actions}
+                    {onRequestPickup && (
+                        <button onClick={onRequestPickup}
+                            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+                            <Truck size={12} /> Request Pickup
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
+    );
+}
+
+function Chip({ icon: Icon, children }) {
+    return (
+        <span className="inline-flex items-center gap-1 text-xs bg-gray-50 text-gray-500 px-2 py-1 rounded-lg">
+            <Icon size={11} />{children}
+        </span>
     );
 }

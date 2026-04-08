@@ -38,6 +38,9 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private com.foodredistribution.foodredistribution.repository.UserRepository userRepository;
+
     @PostMapping("/login")
     @Operation(summary = "Login and receive JWT token")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
@@ -51,7 +54,8 @@ public class AuthController {
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
         String token = jwtUtil.generateToken(userDetails);
         String role = userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
-        return ApiResponse.success(new AuthResponse(token, request.getEmail(), role));
+        Long userId = userRepository.findByEmail(request.getEmail()).map(u -> u.getUserId()).orElse(null);
+        return ApiResponse.success(new AuthResponse(token, request.getEmail(), role, userId));
     }
 
     @PostMapping("/register")

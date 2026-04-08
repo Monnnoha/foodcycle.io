@@ -7,12 +7,14 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
         const email = localStorage.getItem('email');
         const role = localStorage.getItem('role');
-        return email ? { email, role } : null;
+        const userId = localStorage.getItem('userId');
+        return email ? { email, role, id: userId ? Number(userId) : null } : null;
     });
 
     const login = useCallback(async (email, password) => {
         const data = await authService.login(email, password);
-        setUser({ email: data.email, role: data.role });
+        localStorage.setItem('userId', data.userId ?? '');
+        setUser({ email: data.email, role: data.role, id: data.userId ?? null });
         return data;
     }, []);
 
