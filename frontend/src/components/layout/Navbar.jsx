@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { notificationService } from '../../services/notificationService';
+import { useTheme } from '../../hooks/useTheme';
 
 const ROUTE_META = {
     '/dashboard': { title: 'Dashboard', emoji: '🏠' },
@@ -19,6 +20,7 @@ const ROUTE_META = {
 export default function Navbar() {
     const { user, logout } = useAuth();
     const { pathname } = useLocation();
+    const { dark, toggle } = useTheme();
 
     // Match dynamic routes like /donations/:id
     const baseRoute = '/' + pathname.split('/')[1];
@@ -49,6 +51,12 @@ export default function Navbar() {
 
             {/* Actions */}
             <div className="flex items-center gap-1 shrink-0">
+                {/* Dark mode toggle */}
+                <button onClick={toggle}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-all duration-150 active:scale-95"
+                    aria-label="Toggle dark mode">
+                    {dark ? <Sun size={16} /> : <Moon size={16} />}
+                </button>
                 <Link to="/notifications"
                     className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-all duration-150 active:scale-95">
                     <Bell size={16} />

@@ -36,6 +36,8 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getOrgName() != null) user.setOrgName(request.getOrgName());
         return toDTO(userRepository.save(user));
     }
 
@@ -64,7 +66,7 @@ public class UserService {
     }
 
     public UserDTO toDTO(User user) {
-        return new UserDTO(user.getUserId(), user.getName(), user.getEmail(), user.getPhone(), user.getRole());
+        return new UserDTO(user.getUserId(), user.getName(), user.getEmail(), user.getPhone(), user.getOrgName(), user.getRole());
     }
 
     /** Used by @PreAuthorize SpEL to check ownership without an extra service call */

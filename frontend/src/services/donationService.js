@@ -53,4 +53,9 @@ export const donationService = {
         const { data } = await api.patch(`/donations/${id}/advance`);
         return data.data;
     },
+
+    async ngoAccept(id, ngoId) {
+        const { data } = await api.patch(`/donations/${id}/ngo-accept`, null, { params: { ngoId } });
+        return data.data;
+    },
 };

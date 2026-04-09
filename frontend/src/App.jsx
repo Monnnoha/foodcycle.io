@@ -17,14 +17,11 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Users = lazy(() => import('./pages/Users'));
 const AuditLogs = lazy(() => import('./pages/AuditLogs'));
+const NgoDonations = lazy(() => import('./pages/NgoDonations'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
-        queries: {
-            retry: 1,
-            staleTime: 30_000,
-            refetchOnWindowFocus: false,
-        },
+        queries: { retry: 1, staleTime: 30_000, refetchOnWindowFocus: false },
     },
 });
 
@@ -56,6 +53,7 @@ function AppRoutes() {
                     <Route path="/donations" element={<Donations />} />
                     <Route path="/donations/:id" element={<DonationDetail />} />
                     <Route path="/my-donations" element={<RoleRoute roles={['DONOR']}><MyDonations /></RoleRoute>} />
+                    <Route path="/ngo-donations" element={<RoleRoute roles={['NGO', 'ADMIN']}><NgoDonations /></RoleRoute>} />
                     <Route path="/pickups" element={<Pickups />} />
                     <Route path="/nearby" element={<NearbyDonations />} />
                     <Route path="/notifications" element={<Notifications />} />

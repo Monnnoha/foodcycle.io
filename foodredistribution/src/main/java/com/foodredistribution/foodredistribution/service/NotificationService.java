@@ -6,6 +6,7 @@ import com.foodredistribution.foodredistribution.event.DonationCreatedEvent;
 import com.foodredistribution.foodredistribution.event.DonationEvent;
 import com.foodredistribution.foodredistribution.exception.ResourceNotFoundException;
 import com.foodredistribution.foodredistribution.repository.NotificationRepository;
+import com.foodredistribution.foodredistribution.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
@@ -14,24 +15,47 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class NotificationService {
 
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // ── Event listeners ───────────────────────────────────────────────────────
 
-    /** Fires when a DONOR creates a new donation — notifies the donor */
+    /**
+     * Fires when a DONOR creates a new donation.
+     * Notifies: the donor (confirmation) + ALL registered NGOs (new food available).
+     */
     @Async
     @EventListener
     public void handleDonationCreated(DonationCreatedEvent event) {
         FoodDonation donation = event.getDonation();
+
+        // 1. Confirm to donor
         save(donation.getDonor(),
-                "Donation Created",
-                "Your donation '" + donation.getFoodDescription() + "' is now live and available for pickup.",
+                "Donation Created ✓",
+                "Your donation '" + donation.getFoodDescription() + "' is live. NGOs will review it shortly.",
                 NotificationType.DONATION_CREATED,
                 donation.getDonationId());
+
+        // 2. Notify ALL NGOs so they can review and accept
+        List<User> ngos = userRepository.findByRole(UserRole.NGO);
+        for (User ngo : ngos) {
+            save(ngo,
+                    "New Donation Available",
+                    "A new donation '" + donation.getFoodDescription() + "' ("
+                            + donation.getQuantity() + " units"
+                            + (donation.getCity() != null ? ", " + donation.getCity() : "")
+                            + ") is waiting for your review.",
+                    NotificationType.DONATION_CREATED,
+                    donation.getDonationId());
+        }
     }
 
     /** Fires on pickup workflow transitions — notifies relevant parties */
@@ -53,6 +77,29 @@ public class NotificationService {
                 save(pickup.getVolunteer(),
                         "Pickup Confirmed",
                         "You have successfully requested pickup for '" + donation.getFoodDescription() + "'.",
+                        type, donation.getDonationId());
+            }
+            case NGO_ACCEPTED -> {
+                // Notify ALL volunteers that a donation is ready for pickup
+                List<User> volunteers = userRepository.findByRole(UserRole.VOLUNTEER);
+                for (User volunteer : volunteers) {
+                    save(volunteer,
+                            "Donation Ready for Pickup 🚚",
+                            "NGO has approved '" + donation.getFoodDescription() + "' ("
+                                    + donation.getQuantity() + " units"
+                                    + (donation.getCity() != null ? " in " + donation.getCity() : "")
+                                    + "). You can now request pickup.",
+                            type, donation.getDonationId());
+                }
+                // Confirm to the NGO that accepted
+                save(pickup.getNgo(),
+                        "Donation Accepted",
+                        "You accepted '" + donation.getFoodDescription() + "'. Volunteers have been notified.",
+                        type, donation.getDonationId());
+                // Notify donor
+                save(donation.getDonor(),
+                        "NGO Accepted Your Donation",
+                        "An NGO has accepted your donation '" + donation.getFoodDescription() + "'. A volunteer will pick it up soon.",
                         type, donation.getDonationId());
             }
             case PICKUP_ASSIGNED -> {

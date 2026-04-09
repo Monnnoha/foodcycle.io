@@ -58,6 +58,19 @@ export function useAdvanceDonationStatus() {
     });
 }
 
+export function useNgoAccept() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({ donationId, ngoId }) => donationService.ngoAccept(donationId, ngoId),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['donations'] });
+            qc.invalidateQueries({ queryKey: ['notifications'] });
+            toast.success('Donation accepted — volunteers have been notified');
+        },
+        onError: (err) => toast.error(err.message),
+    });
+}
+
 export function useUploadDonationImage() {
     const qc = useQueryClient();
     return useMutation({

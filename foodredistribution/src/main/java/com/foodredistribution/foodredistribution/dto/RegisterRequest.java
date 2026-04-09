@@ -21,4 +21,10 @@ public class RegisterRequest {
 
     @NotNull(message = "Role is required")
     private UserRole role;
+
+    /** Optional — phone number for all roles */
+    private String phone;
+
+    /** Optional — organization name for NGO / business donor */
+    private String orgName;
 }

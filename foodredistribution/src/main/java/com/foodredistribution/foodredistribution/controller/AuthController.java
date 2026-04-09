@@ -55,7 +55,9 @@ public class AuthController {
         String token = jwtUtil.generateToken(userDetails);
         String role = userDetails.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
         Long userId = userRepository.findByEmail(request.getEmail()).map(u -> u.getUserId()).orElse(null);
-        return ApiResponse.success(new AuthResponse(token, request.getEmail(), role, userId));
+        com.foodredistribution.foodredistribution.entity.User u = userRepository.findByEmail(request.getEmail()).orElse(null);
+        return ApiResponse.success(new AuthResponse(token, request.getEmail(), role, userId,
+                u != null ? u.getName() : null, u != null ? u.getOrgName() : null));
     }
 
     @PostMapping("/register")

@@ -115,4 +115,17 @@ public class DonationController {
     public ApiResponse<FoodDonationDTO> advanceStatus(@PathVariable Long id) {
         return ApiResponse.success("Status updated", donationService.advanceStatus(id));
     }
+
+    /**
+     * NGO accepts a donation — fires notifications to all volunteers.
+     * The donation stays AVAILABLE so a volunteer can then request pickup.
+     */
+    @PatchMapping("/{id}/ngo-accept")
+    @PreAuthorize("hasRole('NGO')")
+    @Operation(summary = "NGO accepts a donation — notifies all volunteers (NGO only)")
+    public ApiResponse<FoodDonationDTO> ngoAccept(
+            @PathVariable Long id,
+            @RequestParam Long ngoId) {
+        return ApiResponse.success("Donation accepted", donationService.ngoAccept(id, ngoId));
+    }
 }

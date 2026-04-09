@@ -8,13 +8,23 @@ export function AuthProvider({ children }) {
         const email = localStorage.getItem('email');
         const role = localStorage.getItem('role');
         const userId = localStorage.getItem('userId');
-        return email ? { email, role, id: userId ? Number(userId) : null } : null;
+        const name = localStorage.getItem('name');
+        const orgName = localStorage.getItem('orgName');
+        return email ? { email, role, id: userId ? Number(userId) : null, name, orgName } : null;
     });
 
     const login = useCallback(async (email, password) => {
         const data = await authService.login(email, password);
         localStorage.setItem('userId', data.userId ?? '');
-        setUser({ email: data.email, role: data.role, id: data.userId ?? null });
+        localStorage.setItem('name', data.name ?? '');
+        localStorage.setItem('orgName', data.orgName ?? '');
+        setUser({
+            email: data.email,
+            role: data.role,
+            id: data.userId ?? null,
+            name: data.name ?? null,
+            orgName: data.orgName ?? null,
+        });
         return data;
     }, []);
 
@@ -23,9 +33,7 @@ export function AuthProvider({ children }) {
         setUser(null);
     }, []);
 
-    const hasRole = useCallback((...roles) => {
-        return roles.includes(user?.role);
-    }, [user]);
+    const hasRole = useCallback((...roles) => roles.includes(user?.role), [user]);
 
     return (
         <AuthContext.Provider value={{ user, login, logout, hasRole, isAuthenticated: !!user }}>

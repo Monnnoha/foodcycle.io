@@ -100,6 +100,36 @@ public class FoodDonationService {
     }
 
     /**
+     * NGO accepts a donation: status stays AVAILABLE but fires NGO_ACCEPTED event
+     * so all volunteers get notified. The NGO user ID is recorded via a lightweight
+     * PickupRequest stub (ngo set, volunteer null until a volunteer claims it).
+     */
+    @Auditable(action = AuditAction.DONATION_STATUS_ADVANCED, entity = "FoodDonation")
+    @org.springframework.transaction.annotation.Transactional
+    public FoodDonationDTO ngoAccept(Long donationId, Long ngoId) {
+        FoodDonation donation = findById(donationId);
+        if (donation.getStatus() != DonationStatus.AVAILABLE) {
+            throw new BadRequestException("Donation is not available for acceptance. Status: " + donation.getStatus());
+        }
+        User ngo = userRepository.findById(ngoId)
+                .orElseThrow(() -> new ResourceNotFoundException("NGO not found: " + ngoId));
+
+        // Create a stub PickupRequest with only NGO set — volunteer fills in later
+        com.foodredistribution.foodredistribution.entity.PickupRequest stub =
+                new com.foodredistribution.foodredistribution.entity.PickupRequest();
+        stub.setDonation(donation);
+        stub.setNgo(ngo);
+        stub.setVolunteer(ngo); // temporary placeholder — overwritten when volunteer claims
+
+        // Fire event so NotificationService broadcasts to all volunteers
+        com.foodredistribution.foodredistribution.event.DonationEvent evt =
+                new com.foodredistribution.foodredistribution.event.DonationEvent(this, stub, com.foodredistribution.foodredistribution.entity.NotificationType.NGO_ACCEPTED);
+        eventPublisher.publishEvent(evt);
+
+        return toDTO(donation);
+    }
+
+    /**
      * Returns donations within the requested radius, sorted by distance ascending.
      * Each result has distanceKm populated for frontend map display.
      */
